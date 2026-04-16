@@ -34,4 +34,14 @@ test.describe('GET /claims/{id}', () => {
     expectSchema(validators.Error, body);
     expect(body.code).toBe('INVALID_ID');
   });
+
+  test('TC-G4 returns 400 INVALID_ID for a valid UUID that is not version 4', async ({ claims }) => {
+    const uuidV1 = '11111111-2222-1333-8444-555555555555';
+    const res = await claims.get(uuidV1);
+
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expectSchema(validators.Error, body);
+    expect(body.code).toBe('INVALID_ID');
+  });
 });

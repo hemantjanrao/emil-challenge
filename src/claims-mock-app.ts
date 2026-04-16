@@ -41,7 +41,7 @@ const claims = new Map<string, Claim>();
 
 // --- Helpers -----------------------------------------------------------------
 
-const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -244,6 +244,16 @@ app.patch('/claims/:id', (req: Request, res: Response) => {
   // Invariant: APPROVED and PAID require a payout amount.
   const nextStatus = status ?? claim.status;
   const nextPayout = payoutAmount ?? claim.payoutAmount;
+  const payoutTouched = payoutAmount !== undefined || payoutCurrency !== undefined;
+  if (payoutTouched && nextStatus !== 'APPROVED' && nextStatus !== 'PAID') {
+    sendError(
+      res,
+      422,
+      'PAYOUT_NOT_ALLOWED',
+      'Payout fields can only be set once a claim is APPROVED or PAID.',
+    );
+    return;
+  }
   if ((nextStatus === 'APPROVED' || nextStatus === 'PAID') && nextPayout === undefined) {
     sendError(res, 422, 'PAYOUT_REQUIRED', `payoutAmount is required when status is ${nextStatus}.`);
     return;

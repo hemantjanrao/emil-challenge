@@ -1,9 +1,9 @@
 /**
  * Test-data factory for claim creation payloads.
  *
- * Tests run in parallel across files, so every claim gets a unique
- * policyNumber by default — this keeps list/filter assertions
- * deterministic without requiring a shared database reset.
+ * Tests run in parallel across worker processes, so every claim gets a
+ * policyNumber derived from process id + local sequence. That keeps
+ * list/filter assertions deterministic without requiring a shared reset.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -14,7 +14,9 @@ let counter = 0;
 function uniquePolicyNumber(): string {
   // POL- followed by 10 digits — matches the `^POL-[0-9]{4,10}$` pattern.
   counter += 1;
-  const suffix = String(Date.now()).slice(-7) + String(counter).padStart(3, '0');
+  const workerPrefix = String(process.pid % 100_000).padStart(5, '0');
+  const localSequence = String(counter % 100_000).padStart(5, '0');
+  const suffix = workerPrefix + localSequence;
   return `POL-${suffix}`;
 }
 

@@ -143,6 +143,20 @@ test.describe('PATCH /claims/{id} — invariants and edge cases', () => {
     expect(res.status()).toBe(404);
     expect((await res.json()).code).toBe('CLAIM_NOT_FOUND');
   });
+
+  for (const arrange of [
+    { name: 'OPEN claim', transitions: [] },
+    { name: 'IN_REVIEW claim', transitions: [{ status: 'IN_REVIEW' } satisfies UpdateClaimRequest] },
+  ]) {
+    test(`TC-U12 rejects payout fields before approval for an ${arrange.name}`, async ({ claims }) => {
+      const claim = await claims.createOrThrow(aValidCreateClaim());
+      if (arrange.transitions.length) await claims.advanceThrough(claim.id, arrange.transitions);
+
+      const res = await claims.update(claim.id, { payoutAmount: 100 });
+      expect(res.status(), await res.text()).toBe(422);
+      expect((await res.json()).code).toBe('PAYOUT_NOT_ALLOWED');
+    });
+  }
 });
 
 // --- helpers -----------------------------------------------------------------

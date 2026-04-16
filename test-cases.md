@@ -9,11 +9,12 @@ implementation in one step.
 
 - **Status codes:** `400` for schema / syntax violations, `404` for missing
   resources, `422` for business-rule violations (invalid status transition,
-  missing payout). `200` on read/update success, `201` on create success.
+  missing payout, payout before approval, future `damageDate`). `200` on
+  read/update success, `201` on create success.
 - **Error shape:** every non-2xx response conforms to the `Error` schema
   (`{ code, message, details? }`). Asserted by every negative test and by
   the dedicated schema-compliance suite.
-- **Parallel safety:** tests isolate themselves by generating a unique
+- **Parallel safety:** tests isolate themselves by generating a worker-safe
   `policyNumber` per claim (see `tests/support/claim-builder.ts`).
 
 ---
@@ -39,6 +40,7 @@ implementation in one step.
 | TC-G1  | Existing id                           | `200`, body matches `Claim`                  |
 | TC-G2  | Valid UUID, unknown id                | `404 CLAIM_NOT_FOUND`                        |
 | TC-G3  | Non-UUID id in path                   | `400 INVALID_ID`                             |
+| TC-G4  | Valid UUID that is not version 4      | `400 INVALID_ID`                             |
 
 ## 3. PATCH /claims/{id} — Update status
 
@@ -82,6 +84,7 @@ A single parameterised test (`TC-U4`) asserts **every forbidden (from, to) pair*
 | TC-U9  | Empty body `{}`                                                           | `400` (spec: `minProperties: 1`)   |
 | TC-U10 | Unknown field in body                                                     | `400` (`additionalProperties:false`)|
 | TC-U11 | PATCH a non-existent id                                                   | `404 CLAIM_NOT_FOUND`              |
+| TC-U12 | Payout fields before `APPROVED` (`OPEN` / `IN_REVIEW`)                   | `422 PAYOUT_NOT_ALLOWED`           |
 
 ## 4. GET /claims — List / filter
 

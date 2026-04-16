@@ -1,5 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
+const mockPort = Number(process.env['MOCK_PORT'] ?? 3100);
+const mockBaseUrl = `http://localhost:${mockPort}`;
+
 /**
  * Playwright is used in API-only mode — no browsers launched.
  * `webServer` starts the TypeScript mock via `tsx` before the suite runs.
@@ -15,7 +18,7 @@ export default defineConfig({
     ? [['list'], ['html', { open: 'never' }], ['github']]
     : [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: process.env['BASE_URL'] ?? 'http://localhost:3000',
+    baseURL: process.env['BASE_URL'] ?? mockBaseUrl,
     extraHTTPHeaders: {
       accept: 'application/json',
       'content-type': 'application/json',
@@ -25,9 +28,9 @@ export default defineConfig({
   webServer: process.env['BASE_URL']
     ? undefined
     : {
-        command: 'npx tsx src/mock-server.ts',
-        url: 'http://localhost:3000/claims',
-        reuseExistingServer: !process.env['CI'],
+        command: `PORT=${mockPort} npx tsx src/mock-server.ts`,
+        url: `${mockBaseUrl}/claims`,
+        reuseExistingServer: false,
         stdout: 'pipe',
         stderr: 'pipe',
         timeout: 15_000,

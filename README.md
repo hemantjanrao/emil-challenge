@@ -17,6 +17,10 @@ npm test                 # starts the mock automatically and runs the suite
 npm run test:report      # opens the HTML report from the last run
 ```
 
+The Playwright suite starts an isolated mock on `http://localhost:3100`
+by default (`MOCK_PORT=...` can override it), so stale local servers do not
+hide contract changes.
+
 Run the mock standalone (e.g. to hit it with curl):
 
 ```bash
@@ -56,6 +60,17 @@ curl -s localhost:3000/claims | jq
 
 ---
 
+## Challenge Deliverables
+
+| PDF task | Where it is covered |
+|----------|---------------------|
+| Task 1: Design the Claims API in OpenAPI/Swagger | [`claims-api.yaml`](./claims-api.yaml) defines `POST /claims`, `GET /claims/{id}`, `PATCH /claims/{id}`, and `GET /claims`, including schemas, status enum, filters, and error responses. |
+| Task 2: Derive test cases from the spec | [`test-cases.md`](./test-cases.md) lists happy paths, validation/negative tests, status-transition tests, and list/filter tests with TC IDs. |
+| Task 3: Implement an API test framework | [`tests/specs/`](./tests/specs) contains Playwright API tests, [`tests/support/claims-client.ts`](./tests/support/claims-client.ts) provides the reusable API client, and [`tests/support/schema.ts`](./tests/support/schema.ts) exposes schema assertions. |
+| Task 4: CI & docs | [`.github/workflows/tests.yml`](./.github/workflows/tests.yml) runs the suite in GitHub Actions, and this README explains setup, execution, scope cuts, and what else should be tested in a real service. |
+
+---
+
 ## Architecture & design decisions
 
 **Single source of truth.** `claims-api.yaml` is loaded at boot by both the
@@ -78,11 +93,12 @@ plus invariants (APPROVED/PAID require `payoutAmount`).
 
 **Status code semantics.** `400` ≙ schema/syntax (missing field, wrong
 type, malformed JSON). `404` ≙ resource not found. `422` ≙ business-rule
-violation (invalid state transition, missing payout, future `damageDate`).
-Every error body matches the shared `Error` schema.
+violation (invalid state transition, missing payout, payout before
+approval, future `damageDate`). Every error body matches the shared
+`Error` schema.
 
-**Parallel-safe tests.** Every test generates a unique `policyNumber` via
-`claim-builder.ts`, so list / filter assertions stay deterministic even
+**Parallel-safe tests.** Every test generates a worker-safe `policyNumber`
+via `claim-builder.ts`, so list / filter assertions stay deterministic even
 though the mock is shared and Playwright runs files in parallel.
 
 **Reusable client.** `ClaimsClient` wraps `APIRequestContext` with typed
@@ -90,13 +106,13 @@ methods per operation plus two helpers that matter at this size:
 `createOrThrow` and `advanceThrough` — "arrange" primitives that fail
 loudly and keep spec files readable.
 
-**Data-driven negative matrix.** `create-claim.spec.ts` drives ~12 invalid
-payloads through a single `for`-loop of TC-C4/C5 — adding a new constraint
+**Data-driven negative matrix.** `create-claim.spec.ts` drives 13 invalid
+payloads through parameterised TC-C5/TC-C6 tests — adding a new constraint
 to the spec means one extra row, not a copy-pasted test.
 
 ---
 
-## Inline OpenAPI spec
+## OpenAPI Spec
 
 See [`claims-api.yaml`](./claims-api.yaml). At a glance:
 
@@ -117,14 +133,14 @@ or defaults it when omitted; other statuses are reached via `PATCH`.
 ## Test catalogue
 
 See [`test-cases.md`](./test-cases.md) for the full, id-addressable
-catalogue (C1–C9, G1–G3, U1–U11, L1–L6, plus schema-compliance). The
+catalogue (C1–C9, G1–G4, U1–U12, L1–L6, plus schema-compliance). The
 transition matrix lives there too.
 
 Counts at a glance:
 
 - **Happy paths:** 6
-- **Negative / validation:** ~26 (data-driven)
-- **State-machine invalid transitions:** 15 pairs, auto-generated
+- **Negative / validation:** ~29 (data-driven)
+- **State-machine invalid transitions:** 16 pairs, auto-generated
 - **Schema-compliance asserts:** 5 endpoint flavours + 5 error flavours
 
 ---
