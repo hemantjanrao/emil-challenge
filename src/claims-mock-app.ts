@@ -1,15 +1,3 @@
-/**
- * EMIL Claims API — in-memory mock server (TypeScript).
- *
- * Design choices:
- *  - Schema validation and the spec are pulled from `lib/openapi.ts`, the
- *    single source of truth shared with the test suite.
- *  - 400 → schema / syntax violations; 422 → business-rule violations;
- *    404 → resource not found. All error bodies match the `Error` schema.
- *  - The status state machine is encoded as a typed `Record` so TypeScript
- *    enforces exhaustiveness if the `ClaimStatus` union ever changes.
- */
-
 import { randomUUID } from 'node:crypto';
 import express, { type Request, type Response, type NextFunction, type ErrorRequestHandler } from 'express';
 import { spec, getSchemaValidator } from '../lib/openapi.js';

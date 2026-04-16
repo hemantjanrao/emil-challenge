@@ -19,11 +19,9 @@
 
 import { test, expect, expectSchema, validators } from '../support/fixtures.js';
 import { aValidCreateClaim } from '../support/claim-builder.js';
-import type { UpdateClaimRequest } from '../support/types.js';
 
 test.describe('PATCH /claims/{id}', () => {
 
-  // --- Happy paths -----------------------------------------------------------
 
   test('TC-U1 full workflow: OPEN → IN_REVIEW → APPROVED → PAID', async ({ claims }) => {
     const claim = await claims.createOrThrow(aValidCreateClaim());
@@ -48,7 +46,9 @@ test.describe('PATCH /claims/{id}', () => {
     await claims.advanceThrough(claim.id, [{ status: 'IN_REVIEW' }]);
     const res = await claims.update(claim.id, { status: 'REJECTED' });
     expect(res.status()).toBe(200);
-    expect((await res.json()).status).toBe('REJECTED');
+    const body = await res.json();
+    expectSchema(validators.Claim, body);
+    expect(body.status).toBe('REJECTED');
   });
 
   test('TC-U3 updatedAt advances; createdAt stays fixed', async ({ claims }) => {
@@ -60,7 +60,6 @@ test.describe('PATCH /claims/{id}', () => {
     expect(body.createdAt).toBe(claim.createdAt);
   });
 
-  // --- Invalid transitions (representative set) ------------------------------
 
   test('TC-U4a rejects skipping a step: OPEN → APPROVED', async ({ claims }) => {
     const claim = await claims.createOrThrow(aValidCreateClaim());
@@ -98,7 +97,6 @@ test.describe('PATCH /claims/{id}', () => {
     expect(body.code).toBe('INVALID_STATUS_TRANSITION');
   });
 
-  // --- Invariants ------------------------------------------------------------
 
   test('TC-U5 APPROVED without payoutAmount → 422 PAYOUT_REQUIRED', async ({ claims }) => {
     const claim = await claims.createOrThrow(aValidCreateClaim());
@@ -126,7 +124,6 @@ test.describe('PATCH /claims/{id}', () => {
     expect((await res.json()).code).toBe('PAYOUT_NOT_ALLOWED');
   });
 
-  // --- Input validation ------------------------------------------------------
 
   test('TC-U8 invalid status value → 400', async ({ claims }) => {
     const claim = await claims.createOrThrow(aValidCreateClaim());
@@ -142,5 +139,3 @@ test.describe('PATCH /claims/{id}', () => {
   });
 });
 
-// helpers used in arrange steps only
-export type { UpdateClaimRequest };

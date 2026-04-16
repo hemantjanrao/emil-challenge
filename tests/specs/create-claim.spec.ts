@@ -117,9 +117,17 @@ test.describe('POST /claims', () => {
     expect(body.code).toBe('INVALID_JSON');
   });
 
-  test('TC-C9 returned Error body conforms to the Error schema', async ({ claims }) => {
+  test('TC-C9 error body conforms to Error schema and details has field paths', async ({ claims }) => {
     const res = await claims.create({});
     expect(res.status()).toBe(400);
-    expectSchema(validators.Error, await res.json());
+    const body = await res.json();
+    expectSchema(validators.Error, body);
+    expect(body.details).toBeDefined();
+    expect(body.details.length).toBeGreaterThan(0);
+    // Each detail must have a non-empty path — not the empty string the old mock produced.
+    for (const d of body.details) {
+      expect(typeof d.path).toBe('string');
+      expect(d.path.length).toBeGreaterThan(0);
+    }
   });
 });

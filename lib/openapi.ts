@@ -1,11 +1,5 @@
-/**
- * Shared OpenAPI / AJV layer.
- *
- * This module is the *single place* that loads `claims-api.yaml` and
- * compiles AJV validators from it. Both the mock server and the test
- * assertions import from here, so schema drift between server validation
- * and test assertions is structurally impossible.
- */
+// Loads claims-api.yaml once and compiles AJV validators used by both
+// the mock server and the test suite.
 
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -46,8 +40,3 @@ export const validators = {
   Error: getSchemaValidator('Error'),
 };
 
-export function formatErrors(fn: ValidateFunction): string {
-  return (fn.errors ?? [])
-    .map((e) => `  - ${e.instancePath || '(root)'} ${e.message ?? 'invalid'}`)
-    .join('\n');
-}
