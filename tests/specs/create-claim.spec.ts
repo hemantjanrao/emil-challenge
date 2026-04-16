@@ -37,7 +37,13 @@ test.describe('POST /claims', () => {
     expect(await res.json()).toEqual(created);
   });
 
-  test('TC-C3 ignores any caller-supplied id (server mints it)', async ({ claims }) => {
+  test('TC-C3 accepts explicit status=OPEN on create', async ({ claims }) => {
+    const res = await claims.create({ ...aValidCreateClaim(), status: 'OPEN' });
+    expect(res.status(), await res.text()).toBe(201);
+    expect((await res.json()).status).toBe('OPEN');
+  });
+
+  test('TC-C4 rejects any caller-supplied id (server mints it)', async ({ claims }) => {
     const attempted = '00000000-0000-4000-8000-000000000000';
     const res = await claims.create({ ...aValidCreateClaim(), id: attempted } as never);
     expect(res.status()).toBe(400);
@@ -62,7 +68,7 @@ test.describe('POST /claims', () => {
   ];
 
   for (const c of missingFields) {
-    test(`TC-C4 rejects payloads where ${c.name}`, async ({ claims }) => {
+    test(`TC-C5 rejects payloads where ${c.name}`, async ({ claims }) => {
       const base = aValidCreateClaim();
       const payload = { ...base, ...c.patch };
       for (const k of Object.keys(c.patch)) {
@@ -82,25 +88,26 @@ test.describe('POST /claims', () => {
     { name: 'damageDate not ISO', patch: { damageDate: '10/03/2026' }, expectedStatus: 400, expectedCode: 'VALIDATION_ERROR' },
     { name: 'damageDate nonsense', patch: { damageDate: 'not-a-date' }, expectedStatus: 400, expectedCode: 'VALIDATION_ERROR' },
     { name: 'lossDescription too short', patch: { lossDescription: 'oops' }, expectedStatus: 400, expectedCode: 'VALIDATION_ERROR' },
+    { name: 'initial status is not OPEN', patch: { status: 'IN_REVIEW' }, expectedStatus: 400, expectedCode: 'VALIDATION_ERROR' },
     { name: 'unknown field', patch: { secretField: 'nope' }, expectedStatus: 400, expectedCode: 'VALIDATION_ERROR' },
   ];
 
   for (const c of invalidValues) {
-    test(`TC-C5 rejects when ${c.name}`, async ({ claims }) => {
+    test(`TC-C6 rejects when ${c.name}`, async ({ claims }) => {
       const res = await claims.create({ ...aValidCreateClaim(), ...c.patch });
       expect(res.status(), await res.text()).toBe(c.expectedStatus);
       if (c.expectedCode) expect((await res.json()).code).toBe(c.expectedCode);
     });
   }
 
-  test('TC-C6 rejects damageDate in the future with 422 (business rule)', async ({ claims }) => {
+  test('TC-C7 rejects damageDate in the future with 422 (business rule)', async ({ claims }) => {
     const future = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString().slice(0, 10);
     const res = await claims.create({ ...aValidCreateClaim(), damageDate: future });
     expect(res.status()).toBe(422);
     expect((await res.json()).code).toBe('DAMAGE_DATE_IN_FUTURE');
   });
 
-  test('TC-C7 rejects non-JSON body with 400 INVALID_JSON', async ({ request }) => {
+  test('TC-C8 rejects non-JSON body with 400 INVALID_JSON', async ({ request }) => {
     const res = await request.post('/claims', {
       headers: { 'content-type': 'application/json' },
       data: '{not json',
@@ -110,7 +117,7 @@ test.describe('POST /claims', () => {
     expect(body.code).toBe('INVALID_JSON');
   });
 
-  test('TC-C8 returned Error body conforms to the Error schema', async ({ claims }) => {
+  test('TC-C9 returned Error body conforms to the Error schema', async ({ claims }) => {
     const res = await claims.create({});
     expect(res.status()).toBe(400);
     expectSchema(validators.Error, await res.json());

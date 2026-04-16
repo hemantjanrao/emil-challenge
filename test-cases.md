@@ -24,12 +24,13 @@ implementation in one step.
 |--------|------------------------------------------------------------------|--------------------------------------------------------------------------|
 | TC-C1  | Valid payload                                                    | `201`, body matches `Claim`, `status=OPEN`, `Location` header set        |
 | TC-C2  | Created claim is retrievable via `GET /claims/{id}`              | `GET` returns identical body                                             |
-| TC-C3  | Client supplies `id`                                             | `400 VALIDATION_ERROR` (unknown field — server mints the id)             |
-| TC-C4  | Missing required field (×4: policyNumber, claimantName, …)       | `400 VALIDATION_ERROR`                                                   |
-| TC-C5  | Invalid value (×8: wrong pattern, too short, wrong type, …)      | `400 VALIDATION_ERROR`                                                   |
-| TC-C6  | `damageDate` in the future                                       | `422 DAMAGE_DATE_IN_FUTURE`                                              |
-| TC-C7  | Malformed JSON body                                              | `400 INVALID_JSON`                                                       |
-| TC-C8  | Error body conforms to `Error` schema                            | AJV validation passes                                                    |
+| TC-C3  | Client explicitly supplies `status=OPEN`                         | `201`, body matches `Claim`, `status=OPEN`                               |
+| TC-C4  | Client supplies `id`                                             | `400 VALIDATION_ERROR` (unknown field — server mints the id)             |
+| TC-C5  | Missing required field (×4: policyNumber, claimantName, …)       | `400 VALIDATION_ERROR`                                                   |
+| TC-C6  | Invalid value (×9: wrong pattern, bad initial status, …)         | `400 VALIDATION_ERROR`                                                   |
+| TC-C7  | `damageDate` in the future                                       | `422 DAMAGE_DATE_IN_FUTURE`                                              |
+| TC-C8  | Malformed JSON body                                              | `400 INVALID_JSON`                                                       |
+| TC-C9  | Error body conforms to `Error` schema                            | AJV validation passes                                                    |
 
 ## 2. GET /claims/{id} — Read
 

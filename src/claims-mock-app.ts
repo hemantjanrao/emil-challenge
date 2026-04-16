@@ -150,7 +150,13 @@ app.post('/claims', (req: Request, res: Response) => {
     return;
   }
 
-  const body = req.body as { policyNumber: string; claimantName: string; damageDate: string; lossDescription: string };
+  const body = req.body as {
+    policyNumber: string;
+    claimantName: string;
+    damageDate: string;
+    lossDescription: string;
+    status?: 'OPEN';
+  };
 
   // Business rule: damageDate must not be in the future.
   const damage = new Date(body.damageDate + 'T00:00:00Z');

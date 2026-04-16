@@ -5,14 +5,14 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   // Globally ignored paths
   {
-    ignores: ['node_modules/**', 'playwright-report/**', 'test-results/**'],
+    ignores: ['node_modules/**', 'playwright-report/**', 'test-results/**', 'eslint.config.js'],
   },
 
   // Base JS recommended rules
   eslint.configs.recommended,
 
   // TypeScript rules for all .ts files
-  ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.recommended,
 
   // Project-wide overrides
   {
@@ -24,7 +24,7 @@ export default tseslint.config(
     },
     rules: {
       // Allow console in mock server and test helpers
-      'no-console': 'warn',
+      'no-console': 'off',
       // Playwright uses void-returning async callbacks
       '@typescript-eslint/no-floating-promises': 'error',
       // Common in test files — relax

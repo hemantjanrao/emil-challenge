@@ -28,6 +28,7 @@ export interface CreateClaimRequest {
   claimantName: string;
   damageDate: string;
   lossDescription: string;
+  status?: 'OPEN';
 }
 
 export interface UpdateClaimRequest {

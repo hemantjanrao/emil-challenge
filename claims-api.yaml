@@ -65,8 +65,9 @@ paths:
       summary: Create a claim
       operationId: createClaim
       description: |
-        Creates a new claim. New claims are always created with
-        `status = OPEN`; callers MUST NOT set `status` on create.
+        Creates a new claim. New claims default to `status = OPEN`.
+        Callers may explicitly send `status = OPEN`; any other initial
+        status is rejected because workflow changes happen through PATCH.
       requestBody:
         required: true
         content:
@@ -81,6 +82,7 @@ paths:
                   claimantName: Alice Müller
                   damageDate: '2026-03-10'
                   lossDescription: Windshield cracked by flying debris.
+                  status: OPEN
       responses:
         '201':
           description: Claim created.
@@ -301,6 +303,11 @@ components:
           type: string
           minLength: 10
           maxLength: 2000
+        status:
+          type: string
+          enum: [OPEN]
+          default: OPEN
+          description: Optional on create; omitted claims start in OPEN. Other statuses must be reached via PATCH.
 
     UpdateClaimRequest:
       type: object

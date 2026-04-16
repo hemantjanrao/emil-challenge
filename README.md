@@ -24,7 +24,7 @@ npm run start            # → http://localhost:3000
 curl -s localhost:3000/claims | jq
 ```
 
-**Prereqs:** Node ≥ 18, npm ≥ 9.
+**Prereqs:** Node ≥ 20, npm ≥ 9.
 
 ---
 
@@ -33,7 +33,9 @@ curl -s localhost:3000/claims | jq
 ```
 .
 ├── claims-api.yaml              # OpenAPI 3.0.3 — the source of truth
-├── mock-server.js               # Express mock: state machine + AJV validation
+├── src/
+│   ├── claims-mock-app.ts       # Express mock: state machine + AJV validation
+│   └── mock-server.ts           # app.listen entry point
 ├── test-cases.md                # Human-readable test catalogue (TC-* ids)
 ├── playwright.config.ts         # Auto-starts mock; HTML + list reporters
 ├── tests/
@@ -100,27 +102,28 @@ See [`claims-api.yaml`](./claims-api.yaml). At a glance:
 
 | Method | Path              | Purpose                           |
 |--------|-------------------|-----------------------------------|
-| POST   | `/claims`         | Create (always starts as `OPEN`)  |
+| POST   | `/claims`         | Create (defaults to `OPEN`)       |
 | GET    | `/claims`         | List; filter by `status`, `policyNumber` |
 | GET    | `/claims/{id}`    | Read a single claim               |
 | PATCH  | `/claims/{id}`    | Advance status (state machine) / set payout |
 
 `Claim` shape: `id`, `policyNumber`, `claimantName`, `damageDate`,
 `lossDescription`, `status`, optional `payoutAmount` + `payoutCurrency`,
-`createdAt`, `updatedAt`.
+`createdAt`, `updatedAt`. `POST /claims` accepts `status=OPEN` explicitly
+or defaults it when omitted; other statuses are reached via `PATCH`.
 
 ---
 
 ## Test catalogue
 
 See [`test-cases.md`](./test-cases.md) for the full, id-addressable
-catalogue (C1–C8, G1–G3, U1–U11, L1–L6, plus schema-compliance). The
+catalogue (C1–C9, G1–G3, U1–U11, L1–L6, plus schema-compliance). The
 transition matrix lives there too.
 
 Counts at a glance:
 
 - **Happy paths:** 6
-- **Negative / validation:** ~25 (data-driven)
+- **Negative / validation:** ~26 (data-driven)
 - **State-machine invalid transitions:** 15 pairs, auto-generated
 - **Schema-compliance asserts:** 5 endpoint flavours + 5 error flavours
 
