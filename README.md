@@ -234,4 +234,7 @@ The take-home asks for this explicitly. A non-exhaustive priority list:
 
 ## A note on craft
 
-The tests here are intentionally lean — 41, not 63. Every test has one reason to fail. The investment went into the state-machine invariants and input-validation coverage because those are where real bugs hide in a claims service, not into padding the count with redundant assertions.
+The tests are intentionally lean — 41 in total, each with one reason to fail.
+The investment went into state-machine invariants and input-validation coverage
+because those are where real bugs hide in a claims service, not into padding
+the count with redundant assertions.
