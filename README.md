@@ -159,6 +159,7 @@ and pull request to `main`:
 - **No persistence.** The mock is in-memory on purpose so every CI run
   starts clean; in real life we'd wire tests to a disposable DB or
   transactional fixtures.
+- **No DELETE /claims.** Not in the PDF scope. In a real service it would likely be a soft-delete (status → `WITHDRAWN`) rather than a hard delete, which would itself need transition tests.
 - **Single happy currency / payout model.** No FX, no partial payments.
 
 ---
@@ -211,10 +212,11 @@ The take-home asks for this explicitly. A non-exhaustive priority list:
 - Error responses include a `traceId` so support can correlate with APM.
 
 ### Performance & limits
-- Pagination on `GET /claims` (`limit`, `offset` / cursor) with
-  `X-Total-Count`.
-- P95 latency under a realistic claim volume.
-- Rate limiting (429) returns `Retry-After`.
+- `GET /claims` with thousands of rows — response time and memory under load.
+  A real service would need `limit`/`offset` or cursor pagination; `GET /claims`
+  currently returns unbounded results.
+- P95 latency under a realistic claim submission rate.
+- Rate limiting: `429` with a `Retry-After` header on burst traffic.
 
 ### Contract stability
 - Old clients with unknown new fields still parse responses

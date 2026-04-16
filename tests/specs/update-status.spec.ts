@@ -28,10 +28,9 @@ test.describe('PATCH /claims/{id}', () => {
   test('TC-U1 full workflow: OPEN → IN_REVIEW → APPROVED → PAID', async ({ claims }) => {
     const claim = await claims.createOrThrow(aValidCreateClaim());
 
-    await claims.update(claim.id, { status: 'IN_REVIEW' }).then(async r => {
-      expect(r.status()).toBe(200);
-      expect((await r.json()).status).toBe('IN_REVIEW');
-    });
+    const review = await claims.update(claim.id, { status: 'IN_REVIEW' });
+    expect(review.status()).toBe(200);
+    expect((await review.json()).status).toBe('IN_REVIEW');
 
     const approved = await claims.update(claim.id, { status: 'APPROVED', payoutAmount: 1500, payoutCurrency: 'EUR' });
     expect(approved.status()).toBe(200);

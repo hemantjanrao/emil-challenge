@@ -13,10 +13,10 @@ info:
     name: EMIL Claims Platform
     email: claims-platform@example.com
 servers:
-  - url: http://localhost:3000
-    description: Standalone local mock server (`npm run start`)
   - url: http://localhost:3100
-    description: Isolated Playwright test mock (default `npm test`)
+    description: Default mock used by `npm test` (Playwright auto-starts it on 3100)
+  - url: http://localhost:3000
+    description: Standalone mock (`npm run start`) for manual curl exploration
 
 tags:
   - name: Claims

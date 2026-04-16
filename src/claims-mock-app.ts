@@ -12,10 +12,8 @@
 
 import { randomUUID } from 'node:crypto';
 import express, { type Request, type Response, type NextFunction, type ErrorRequestHandler } from 'express';
-import { spec, getSchemaValidator, formatErrors } from '../lib/openapi.js';
+import { spec, getSchemaValidator } from '../lib/openapi.js';
 import type { Claim, ClaimStatus, Currency } from '../lib/types.js';
-
-// --- State machine -----------------------------------------------------------
 
 const TRANSITIONS: Record<ClaimStatus, ClaimStatus[]> = {
   OPEN: ['IN_REVIEW'],
@@ -29,17 +27,11 @@ function canTransition(from: ClaimStatus, to: ClaimStatus): boolean {
   return TRANSITIONS[from].includes(to);
 }
 
-// --- Validators --------------------------------------------------------------
-
 const validateCreateBody = getSchemaValidator('CreateClaimRequest');
 const validateUpdateBody = getSchemaValidator('UpdateClaimRequest');
 const validateStatus = getSchemaValidator('ClaimStatus');
 
-// --- Storage -----------------------------------------------------------------
-
 const claims = new Map<string, Claim>();
-
-// --- Helpers -----------------------------------------------------------------
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -66,8 +58,6 @@ function requireObjectBody(req: Request, res: Response): boolean {
   }
   return true;
 }
-
-// --- App ---------------------------------------------------------------------
 
 export const app = express();
 
@@ -108,8 +98,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// --- GET /claims -------------------------------------------------------------
-
 app.get('/claims', (req: Request, res: Response) => {
   const { status, policyNumber } = req.query as Record<string, string | undefined>;
 
@@ -135,18 +123,16 @@ app.get('/claims', (req: Request, res: Response) => {
   res.json(result);
 });
 
-// --- POST /claims ------------------------------------------------------------
-
 app.post('/claims', (req: Request, res: Response) => {
   if (!requireObjectBody(req, res)) return;
 
   if (!validateCreateBody(req.body)) {
-    sendError(res, 400, 'VALIDATION_ERROR', 'Request body failed schema validation.', [
-      ...formatErrors(validateCreateBody)
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => ({ path: '', issue: line.trim() })),
-    ]);
+    sendError(res, 400, 'VALIDATION_ERROR', 'Request body failed schema validation.',
+      (validateCreateBody.errors ?? []).map(e => ({
+        path: e.instancePath || '/',
+        issue: e.message ?? 'invalid',
+      })),
+    );
     return;
   }
 
@@ -181,8 +167,6 @@ app.post('/claims', (req: Request, res: Response) => {
   res.status(201).location(`/claims/${claim.id}`).json(claim);
 });
 
-// --- GET /claims/:id ---------------------------------------------------------
-
 app.get('/claims/:id', (req: Request, res: Response) => {
   if (!UUID_V4.test(req.params['id'] ?? '')) {
     sendError(res, 400, 'INVALID_ID', 'id must be a UUID v4.');
@@ -196,8 +180,6 @@ app.get('/claims/:id', (req: Request, res: Response) => {
   res.json(claim);
 });
 
-// --- PATCH /claims/:id -------------------------------------------------------
-
 app.patch('/claims/:id', (req: Request, res: Response) => {
   if (!UUID_V4.test(req.params['id'] ?? '')) {
     sendError(res, 400, 'INVALID_ID', 'id must be a UUID v4.');
@@ -206,12 +188,12 @@ app.patch('/claims/:id', (req: Request, res: Response) => {
   if (!requireObjectBody(req, res)) return;
 
   if (!validateUpdateBody(req.body)) {
-    sendError(res, 400, 'VALIDATION_ERROR', 'Request body failed schema validation.', [
-      ...formatErrors(validateUpdateBody)
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => ({ path: '', issue: line.trim() })),
-    ]);
+    sendError(res, 400, 'VALIDATION_ERROR', 'Request body failed schema validation.',
+      (validateUpdateBody.errors ?? []).map(e => ({
+        path: e.instancePath || '/',
+        issue: e.message ?? 'invalid',
+      })),
+    );
     return;
   }
 
@@ -269,8 +251,6 @@ app.patch('/claims/:id', (req: Request, res: Response) => {
 
   res.json(claim);
 });
-
-// --- 404 fallback ------------------------------------------------------------
 
 app.use((req: Request, res: Response) => {
   sendError(res, 404, 'ROUTE_NOT_FOUND', `No handler for ${req.method} ${req.path}.`);
