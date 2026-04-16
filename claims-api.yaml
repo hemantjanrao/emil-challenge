@@ -264,8 +264,7 @@ components:
           $ref: '#/components/schemas/ClaimStatus'
         payoutAmount:
           type: number
-          minimum: 0
-          exclusiveMinimum: true
+          minimum: 0.01
           description: Required once status reaches APPROVED or PAID.
           example: 1250.00
         payoutCurrency:
@@ -312,8 +311,7 @@ components:
           $ref: '#/components/schemas/ClaimStatus'
         payoutAmount:
           type: number
-          minimum: 0
-          exclusiveMinimum: true
+          minimum: 0.01
         payoutCurrency:
           $ref: '#/components/schemas/Currency'
 

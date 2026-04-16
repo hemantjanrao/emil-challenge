@@ -111,6 +111,33 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+// --- Request logger ----------------------------------------------------------
+// Logs every inbound call + response status so you can watch traffic in real time.
+// Output: → METHOD /path?query  {body}  ← STATUS
+app.use((req, res, next) => {
+  const start = Date.now();
+  const qs = Object.keys(req.query).length
+    ? '?' + new URLSearchParams(req.query).toString()
+    : '';
+  const bodyStr =
+    req.body && Object.keys(req.body).length
+      ? '  body=' + JSON.stringify(req.body)
+      : '';
+
+  // eslint-disable-next-line no-console
+  process.stdout.write(`→  ${req.method.padEnd(6)} ${req.path}${qs}${bodyStr}\n`);
+
+  // Capture the final status after the response is finished.
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    const color = res.statusCode < 300 ? '\x1b[32m' : res.statusCode < 500 ? '\x1b[33m' : '\x1b[31m';
+    // eslint-disable-next-line no-console
+    process.stdout.write(`${color}←  ${res.statusCode}\x1b[0m  ${req.method} ${req.path}${qs}  (${ms}ms)\n`);
+  });
+
+  next();
+});
+
 // --- GET /claims -------------------------------------------------------------
 
 app.get('/claims', (req, res) => {
