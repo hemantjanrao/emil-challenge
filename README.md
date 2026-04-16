@@ -50,11 +50,10 @@ curl -s localhost:3000/claims | jq
 │   │   ├── claims-client.ts     # Reusable, typed API client
 │   │   └── fixtures.ts          # Playwright test.extend + expectSchema
 │   └── specs/
-│       ├── create-claim.spec.ts         # POST happy + negative matrix
+│       ├── create-claim.spec.ts         # POST happy path + negative matrix
 │       ├── get-claim.spec.ts            # GET by id
-│       ├── update-status.spec.ts        # Full state-machine matrix
-│       ├── list-claims.spec.ts          # Filter by status / policy
-│       └── schema-compliance.spec.ts    # Every response validates vs. spec
+│       ├── update-status.spec.ts        # State machine + invariants
+│       └── list-claims.spec.ts          # List / filter
 └── .github/workflows/tests.yml  # CI: install → test → upload report
 ```
 
@@ -75,9 +74,8 @@ curl -s localhost:3000/claims | jq
 
 **Single source of truth.** `claims-api.yaml` is loaded at boot by both the
 mock and the test suite. AJV compiles every `#/components/schemas/...` once
-and validates responses in both directions. If the spec drifts from the
-server, the `schema-compliance.spec.ts` suite fails immediately — the spec
-can't lie.
+and validates responses in both directions — if the spec drifts from the
+server, the schema assertions in the happy-path tests catch it immediately.
 
 **Why not `json-server`?** The PDF explicitly names an invalid status
 transition as a negative case. `json-server` can't express that. The
@@ -106,9 +104,7 @@ methods per operation plus two helpers that matter at this size:
 `createOrThrow` and `advanceThrough` — "arrange" primitives that fail
 loudly and keep spec files readable.
 
-**Data-driven negative matrix.** `create-claim.spec.ts` drives 13 invalid
-payloads through parameterised TC-C5/TC-C6 tests — adding a new constraint
-to the spec means one extra row, not a copy-pasted test.
+**Coverage philosophy.** Create validation is data-driven (one loop, one row per constraint). Status transitions pick representative *patterns* — skip a step, go backwards, escape a terminal — rather than exhausting all 15 forbidden pairs. The goal is signal-to-noise: every test should be able to fail for a distinct reason.
 
 ---
 
@@ -132,16 +128,7 @@ or defaults it when omitted; other statuses are reached via `PATCH`.
 
 ## Test catalogue
 
-See [`test-cases.md`](./test-cases.md) for the full, id-addressable
-catalogue (C1–C9, G1–G4, U1–U12, L1–L6, plus schema-compliance). The
-transition matrix lives there too.
-
-Counts at a glance:
-
-- **Happy paths:** 6
-- **Negative / validation:** ~29 (data-driven)
-- **State-machine invalid transitions:** 16 pairs, auto-generated
-- **Schema-compliance asserts:** 5 endpoint flavours + 5 error flavours
+See [`test-cases.md`](./test-cases.md) for the full catalogue (C1–C9, G1–G3, U1–U9, L1–L6) — 41 tests total. Each TC ID maps directly to a `test('TC-…')` in the suite.
 
 ---
 
@@ -247,8 +234,4 @@ The take-home asks for this explicitly. A non-exhaustive priority list:
 
 ## A note on craft
 
-The tests you see here are the *starting shape* I want reviewers to see —
-readable names, one reason per test, failure messages that tell you what
-broke. The rigour (state-machine matrix, schema compliance, strict input
-validation) is where QA pays its rent on a real claims service, so I
-chose to invest there rather than pad with superficial happy-paths.
+The tests here are intentionally lean — 41, not 63. Every test has one reason to fail. The investment went into the state-machine invariants and input-validation coverage because those are where real bugs hide in a claims service, not into padding the count with redundant assertions.
