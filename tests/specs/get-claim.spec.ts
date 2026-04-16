@@ -2,8 +2,8 @@
  * GET /claims/{id}
  */
 
-import { test, expect, expectSchema, validators } from '../support/fixtures';
-import { aValidCreateClaim } from '../support/claim-builder';
+import { test, expect, expectSchema, validators } from '../support/fixtures.js';
+import { aValidCreateClaim } from '../support/claim-builder.js';
 
 test.describe('GET /claims/{id}', () => {
   test('TC-G1 returns 200 and a schema-valid Claim for an existing id', async ({ claims }) => {

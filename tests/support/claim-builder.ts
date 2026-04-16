@@ -7,13 +7,12 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { CreateClaimRequest } from './types';
+import type { CreateClaimRequest } from './types.js';
 
 let counter = 0;
 
 function uniquePolicyNumber(): string {
-  // POL- followed by 10 digits — large enough to dodge collisions, and still
-  // matches the `^POL-[0-9]{4,10}$` pattern from the spec.
+  // POL- followed by 10 digits — matches the `^POL-[0-9]{4,10}$` pattern.
   counter += 1;
   const suffix = String(Date.now()).slice(-7) + String(counter).padStart(3, '0');
   return `POL-${suffix}`;

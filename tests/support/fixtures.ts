@@ -1,12 +1,12 @@
 /**
- * Playwright fixtures — extend the base `test` with a per-test `claims`
- * client so specs never instantiate it manually, and so we can swap the
- * transport in the future (e.g. authenticated client) in one place.
+ * Playwright test fixtures — extend the base `test` with a typed `claims`
+ * client so specs never instantiate it manually.
  */
 
 import { test as base, expect } from '@playwright/test';
-import { ClaimsClient } from './claims-client';
-import { validators, formatErrors } from './schema';
+import { ClaimsClient } from './claims-client.js';
+import { validators, formatErrors } from './schema.js';
+import type { ValidateFunction } from 'ajv';
 
 type Fixtures = {
   claims: ClaimsClient;
@@ -18,9 +18,9 @@ export const test = base.extend<Fixtures>({
   },
 });
 
-/** Assert a value validates against an AJV-compiled schema, with a readable diff. */
+/** Assert that `value` validates against the given AJV-compiled schema. */
 export function expectSchema(
-  validator: (typeof validators)[keyof typeof validators],
+  validator: ValidateFunction,
   value: unknown,
 ): void {
   const ok = validator(value);

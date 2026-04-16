@@ -1,14 +1,13 @@
 /**
  * POST /claims — creating a claim.
  *
- * Happy path, then a *data-driven* negative matrix that targets every
- * constraint the OpenAPI spec documents (required fields, patterns,
- * lengths, unknown fields, wrong types, business rules).
+ * Happy path, then a *data-driven* negative matrix targeting every
+ * constraint the OpenAPI spec documents.
  */
 
-import { test, expect, expectSchema, validators } from '../support/fixtures';
-import { aValidCreateClaim } from '../support/claim-builder';
-import type { Claim } from '../support/types';
+import { test, expect, expectSchema, validators } from '../support/fixtures.js';
+import { aValidCreateClaim } from '../support/claim-builder.js';
+import type { Claim } from '../support/types.js';
 
 test.describe('POST /claims', () => {
   test('TC-C1 creates a claim with status=OPEN and a Location header', async ({ claims }) => {
@@ -41,7 +40,6 @@ test.describe('POST /claims', () => {
   test('TC-C3 ignores any caller-supplied id (server mints it)', async ({ claims }) => {
     const attempted = '00000000-0000-4000-8000-000000000000';
     const res = await claims.create({ ...aValidCreateClaim(), id: attempted } as never);
-    // Unknown fields are rejected by the strict schema (`additionalProperties: false`).
     expect(res.status()).toBe(400);
     const body = await res.json();
     expect(body.code).toBe('VALIDATION_ERROR');
@@ -49,7 +47,12 @@ test.describe('POST /claims', () => {
 
   // --- Negative matrix -------------------------------------------------------
 
-  type Case = { name: string; patch: Record<string, unknown>; expectedStatus: number; expectedCode?: string };
+  type Case = {
+    name: string;
+    patch: Record<string, unknown>;
+    expectedStatus: number;
+    expectedCode?: string;
+  };
 
   const missingFields: Case[] = [
     { name: 'policyNumber missing', patch: { policyNumber: undefined }, expectedStatus: 400, expectedCode: 'VALIDATION_ERROR' },

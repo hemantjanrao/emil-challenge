@@ -1,12 +1,11 @@
 /**
- * Spec-level smoke suite: every response the API emits — for every
- * representative happy and error case — validates against the schema
- * declared in `claims-api.yaml`. If somebody changes the spec without
- * updating the server (or vice versa), this suite fails fast.
+ * Spec-level smoke suite: every response the API emits validates against
+ * the schema declared in `claims-api.yaml`. If the spec and the server
+ * drift, this suite fails immediately.
  */
 
-import { test, expect, expectSchema, validators } from '../support/fixtures';
-import { aValidCreateClaim } from '../support/claim-builder';
+import { test, expect, expectSchema, validators } from '../support/fixtures.js';
+import { aValidCreateClaim } from '../support/claim-builder.js';
 
 test.describe('Schema compliance — every response matches claims-api.yaml', () => {
   test('POST /claims 201 → Claim', async ({ claims }) => {
@@ -39,13 +38,13 @@ test.describe('Schema compliance — every response matches claims-api.yaml', ()
 
   test('Error bodies (400 / 404 / 422) all match Error schema', async ({ claims, request }) => {
     const cases = [
-      () => claims.create({}),                                                      // 400
-      () => claims.get('not-a-uuid'),                                               // 400
-      () => claims.get('11111111-2222-4333-8444-555555555555'),                     // 404
-      () => request.get('/claims', { params: { status: 'BOGUS' } }),                // 400
+      () => claims.create({}),
+      () => claims.get('not-a-uuid'),
+      () => claims.get('11111111-2222-4333-8444-555555555555'),
+      () => request.get('/claims', { params: { status: 'BOGUS' } }),
       async () => {
         const c = await claims.createOrThrow(aValidCreateClaim());
-        return claims.update(c.id, { status: 'PAID' });                             // 422
+        return claims.update(c.id, { status: 'PAID' });
       },
     ];
 

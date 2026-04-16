@@ -9,9 +9,9 @@
  * APPROVED and PAID both require a non-zero payoutAmount.
  */
 
-import { test, expect, expectSchema, validators } from '../support/fixtures';
-import { aValidCreateClaim } from '../support/claim-builder';
-import type { ClaimStatus } from '../support/types';
+import { test, expect, expectSchema, validators } from '../support/fixtures.js';
+import { aValidCreateClaim } from '../support/claim-builder.js';
+import type { ClaimStatus, UpdateClaimRequest } from '../support/types.js';
 
 const ALL_STATUSES: ClaimStatus[] = ['OPEN', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'PAID'];
 const ALLOWED: Record<ClaimStatus, ClaimStatus[]> = {
@@ -59,21 +59,17 @@ test.describe('PATCH /claims/{id} — happy paths', () => {
 
   test('TC-U3 bumps updatedAt on every successful transition', async ({ claims }) => {
     const claim = await claims.createOrThrow(aValidCreateClaim());
-    // Wait a tick so the ISO timestamp is guaranteed to differ.
     await new Promise((r) => setTimeout(r, 5));
     const res = await claims.update(claim.id, { status: 'IN_REVIEW' });
     const body = await res.json();
-    expect(new Date(body.updatedAt).getTime()).toBeGreaterThan(new Date(claim.updatedAt).getTime());
+    expect(new Date(body.updatedAt).getTime()).toBeGreaterThan(
+      new Date(claim.updatedAt).getTime(),
+    );
     expect(body.createdAt).toBe(claim.createdAt);
   });
 });
 
 test.describe('PATCH /claims/{id} — invalid transition matrix', () => {
-  /**
-   * For each (from, to) pair that is NOT in the allowed set, drive a fresh
-   * claim into `from` and assert the forbidden transition returns 422.
-   * Self-transitions (from == to) are exercised separately below.
-   */
   for (const from of ALL_STATUSES) {
     for (const to of ALL_STATUSES) {
       if (from === to || ALLOWED[from].includes(to)) continue;
@@ -141,7 +137,9 @@ test.describe('PATCH /claims/{id} — invariants and edge cases', () => {
   });
 
   test('TC-U11 returns 404 when updating a non-existent claim', async ({ claims }) => {
-    const res = await claims.update('99999999-9999-4999-8999-999999999999', { status: 'IN_REVIEW' });
+    const res = await claims.update('99999999-9999-4999-8999-999999999999', {
+      status: 'IN_REVIEW',
+    });
     expect(res.status()).toBe(404);
     expect((await res.json()).code).toBe('CLAIM_NOT_FOUND');
   });
@@ -149,36 +147,28 @@ test.describe('PATCH /claims/{id} — invariants and edge cases', () => {
 
 // --- helpers -----------------------------------------------------------------
 
-function arrangeTransitions(target: ClaimStatus) {
-  // All fresh claims start at OPEN. Compute the shortest legal path to `target`.
+function arrangeTransitions(target: ClaimStatus): UpdateClaimRequest[] {
   switch (target) {
     case 'OPEN':
       return [];
     case 'IN_REVIEW':
-      return [{ status: 'IN_REVIEW' as ClaimStatus }];
+      return [{ status: 'IN_REVIEW' }];
     case 'APPROVED':
-      return [
-        { status: 'IN_REVIEW' as ClaimStatus },
-        { status: 'APPROVED' as ClaimStatus, payoutAmount: 100 },
-      ];
+      return [{ status: 'IN_REVIEW' }, { status: 'APPROVED', payoutAmount: 100 }];
     case 'REJECTED':
-      return [
-        { status: 'IN_REVIEW' as ClaimStatus },
-        { status: 'REJECTED' as ClaimStatus },
-      ];
+      return [{ status: 'IN_REVIEW' }, { status: 'REJECTED' }];
     case 'PAID':
       return [
-        { status: 'IN_REVIEW' as ClaimStatus },
-        { status: 'APPROVED' as ClaimStatus, payoutAmount: 100 },
-        { status: 'PAID' as ClaimStatus },
+        { status: 'IN_REVIEW' },
+        { status: 'APPROVED', payoutAmount: 100 },
+        { status: 'PAID' },
       ];
   }
 }
 
-function toUpdateBody(to: ClaimStatus) {
-  // APPROVED/PAID require payout to avoid tripping the invariant check first;
-  // here we *want* the invalid-transition error, so supply a payout so the
-  // server reaches the transition check.
+function toUpdateBody(to: ClaimStatus): UpdateClaimRequest {
+  // Supply payout so the server reaches the transition check rather than
+  // the payout-required invariant check.
   if (to === 'APPROVED' || to === 'PAID') {
     return { status: to, payoutAmount: 100 };
   }

@@ -1,9 +1,8 @@
 /**
- * Reusable API client for the Claims service.
+ * Typed, reusable API client for the Claims service.
  *
- * Wraps Playwright's `APIRequestContext` with typed methods per operation
- * and exposes both the raw `APIResponse` and a typed parsed body via
- * convenience helpers. Tests should never build paths by hand.
+ * Wraps Playwright's `APIRequestContext` so specs never build URLs by hand
+ * and all operation signatures are type-checked.
  */
 
 import type { APIRequestContext, APIResponse } from '@playwright/test';
@@ -13,7 +12,7 @@ import type {
   CreateClaimRequest,
   ErrorResponse,
   UpdateClaimRequest,
-} from './types';
+} from './types.js';
 
 export interface ListFilter {
   status?: ClaimStatus;
@@ -39,10 +38,7 @@ export class ClaimsClient {
     return this.request.get('/claims', { params: filter as Record<string, string> });
   }
 
-  /**
-   * Create a claim and return the parsed body. Fails loudly if the server
-   * returns anything other than 201 — use this in arrange steps only.
-   */
+  /** Arrange step: create a claim, throw on anything other than 201. */
   async createOrThrow(body: Partial<CreateClaimRequest>): Promise<Claim> {
     const res = await this.create(body);
     if (res.status() !== 201) {
@@ -53,19 +49,20 @@ export class ClaimsClient {
     return (await res.json()) as Claim;
   }
 
-  /** Advance a claim through a sequence of transitions (throws on any failure). */
+  /** Arrange step: advance a claim through a sequence of transitions. */
   async advanceThrough(id: string, transitions: UpdateClaimRequest[]): Promise<Claim> {
     let body: Claim | undefined;
     for (const t of transitions) {
       const res = await this.update(id, t);
       if (res.status() !== 200) {
         throw new Error(
-          `Arrange step failed: PATCH ${id} with ${JSON.stringify(t)} → ${res.status()} — ${await res.text()}`,
+          `Arrange step failed: PATCH ${id} → ${JSON.stringify(t)} → ${res.status()} — ${await res.text()}`,
         );
       }
       body = (await res.json()) as Claim;
     }
-    return body!;
+    if (body === undefined) throw new Error('advanceThrough called with empty transitions array');
+    return body;
   }
 }
 

@@ -2,22 +2,32 @@
   "name": "emil-claims-automation",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "EMIL Claims API — take-home automation suite",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "start": "node mock-server.js",
+    "start": "npx tsx src/mock-server.ts",
     "test": "playwright test",
     "test:report": "playwright show-report",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
   },
   "dependencies": {
-    "ajv": "^8.12.0",
-    "ajv-formats": "^2.1.1",
-    "express": "^4.18.2",
-    "yaml": "^2.3.4"
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "express": "^4.21.2",
+    "yaml": "^2.7.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.42.0",
-    "@types/node": "^20.11.24",
-    "typescript": "^5.4.2"
+    "@eslint/js": "^9.25.0",
+    "@playwright/test": "^1.51.1",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.17.30",
+    "eslint": "^9.25.0",
+    "typescript": "^5.8.3",
+    "tsx": "^4.7.1",
+    "typescript-eslint": "^8.30.1"
   }
 }

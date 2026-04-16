@@ -1,15 +1,10 @@
 /**
  * GET /claims — list / filter.
- *
- * The mock keeps state in memory and tests run in parallel, so these
- * assertions scope themselves with a unique `policyNumber` rather than
- * assuming a clean database — a pattern that also applies in real
- * shared environments.
  */
 
-import { test, expect, expectSchema, validators } from '../support/fixtures';
-import { aValidCreateClaim } from '../support/claim-builder';
-import type { Claim } from '../support/types';
+import { test, expect, expectSchema, validators } from '../support/fixtures.js';
+import { aValidCreateClaim } from '../support/claim-builder.js';
+import type { Claim } from '../support/types.js';
 
 test.describe('GET /claims', () => {
   test('TC-L1 returns a schema-valid array (possibly empty)', async ({ claims }) => {
@@ -33,7 +28,6 @@ test.describe('GET /claims', () => {
   });
 
   test('TC-L3 filters by status — returned rows all have that status', async ({ claims }) => {
-    // Seed two claims under the same policy: one stays OPEN, one becomes IN_REVIEW.
     const policy = aValidCreateClaim().policyNumber;
     const openClaim = await claims.createOrThrow(aValidCreateClaim({ policyNumber: policy }));
     const reviewClaim = await claims.createOrThrow(aValidCreateClaim({ policyNumber: policy }));
