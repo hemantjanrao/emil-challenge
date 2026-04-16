@@ -46,7 +46,7 @@ OPEN ──► IN_REVIEW ──► APPROVED ──► PAID
 | TC-U4d | Move out of terminal state: PAID → IN_REVIEW | `422 INVALID_STATUS_TRANSITION` |
 | TC-U5  | Approve without payoutAmount | `422 PAYOUT_REQUIRED` |
 | TC-U6  | PAID inherits payoutAmount set at APPROVED | `200`, payout persists |
-| TC-U7  | Payout fields on OPEN/IN_REVIEW claim | `422 PAYOUT_NOT_ALLOWED` |
+| TC-U7  | Payout fields before approval (representative OPEN claim) | `422 PAYOUT_NOT_ALLOWED` |
 | TC-U8  | Unknown status value | `400 VALIDATION_ERROR` |
 | TC-U9  | Non-existent claim | `404 CLAIM_NOT_FOUND` |
 
