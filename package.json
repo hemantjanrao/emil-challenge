@@ -1,0 +1,23 @@
+{
+  "name": "emil-claims-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EMIL Claims API — take-home automation suite",
+  "scripts": {
+    "start": "node mock-server.js",
+    "test": "playwright test",
+    "test:report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
+    "express": "^4.18.2",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.42.0",
+    "@types/node": "^20.11.24",
+    "typescript": "^5.4.2"
+  }
+}

@@ -1,0 +1,345 @@
+openapi: 3.0.3
+info:
+  title: EMIL Claims API
+  version: 1.0.0
+  description: |
+    Minimal Claims (Schäden) API used by EMIL's internal departments to
+    record, triage and pay out insurance claims.
+
+    This specification is the single source of truth for request/response
+    schemas, enumerations and the status workflow. Automated tests load
+    this file and validate every response against these schemas.
+  contact:
+    name: EMIL Claims Platform
+    email: claims-platform@example.com
+servers:
+  - url: http://localhost:3000
+    description: Local mock server (json-in-memory)
+
+tags:
+  - name: Claims
+    description: Create, read, update and list insurance claims.
+
+paths:
+  /claims:
+    get:
+      tags: [Claims]
+      summary: List claims
+      operationId: listClaims
+      description: |
+        Returns all claims the caller is authorised to see. Supports
+        filtering by `status` and `policyNumber`. The server returns an
+        empty array when no claim matches — it never returns 404.
+      parameters:
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/PolicyNumberFilter'
+      responses:
+        '200':
+          description: A (possibly empty) array of claims.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Claim'
+              examples:
+                empty:
+                  summary: No claims yet
+                  value: []
+                single:
+                  summary: One OPEN claim
+                  value:
+                    - id: 6f1a4b52-6f2b-4b9a-9a3e-18f7d4c2b111
+                      policyNumber: POL-10001
+                      claimantName: Alice Müller
+                      damageDate: '2026-03-10'
+                      lossDescription: Windshield cracked by flying debris.
+                      status: OPEN
+                      createdAt: '2026-03-11T08:12:00Z'
+                      updatedAt: '2026-03-11T08:12:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    post:
+      tags: [Claims]
+      summary: Create a claim
+      operationId: createClaim
+      description: |
+        Creates a new claim. New claims are always created with
+        `status = OPEN`; callers MUST NOT set `status` on create.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClaimRequest'
+            examples:
+              valid:
+                summary: Minimal valid payload
+                value:
+                  policyNumber: POL-10001
+                  claimantName: Alice Müller
+                  damageDate: '2026-03-10'
+                  lossDescription: Windshield cracked by flying debris.
+      responses:
+        '201':
+          description: Claim created.
+          headers:
+            Location:
+              description: URL of the newly created claim.
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /claims/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ClaimId'
+    get:
+      tags: [Claims]
+      summary: Get a claim
+      operationId: getClaim
+      responses:
+        '200':
+          description: Claim found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Claims]
+      summary: Update claim status (and payout on APPROVED/PAID)
+      operationId: updateClaim
+      description: |
+        Advances the claim through the workflow:
+
+        ```
+        OPEN ──► IN_REVIEW ──► APPROVED ──► PAID
+                      │
+                      └──► REJECTED
+        ```
+
+        Transitions not shown above are rejected with `422`. Setting
+        the status to `APPROVED` or `PAID` requires `payoutAmount`
+        (and implicitly `payoutCurrency`, default `EUR`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateClaimRequest'
+            examples:
+              review:
+                summary: Move OPEN claim into review
+                value:
+                  status: IN_REVIEW
+              approve:
+                summary: Approve with payout
+                value:
+                  status: APPROVED
+                  payoutAmount: 1250.00
+                  payoutCurrency: EUR
+      responses:
+        '200':
+          description: Claim updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+components:
+  parameters:
+    ClaimId:
+      in: path
+      name: id
+      required: true
+      description: The claim's UUID v4 identifier.
+      schema:
+        type: string
+        format: uuid
+    StatusFilter:
+      in: query
+      name: status
+      required: false
+      description: Return only claims matching this status.
+      schema:
+        $ref: '#/components/schemas/ClaimStatus'
+    PolicyNumberFilter:
+      in: query
+      name: policyNumber
+      required: false
+      description: Return only claims tied to this policy.
+      schema:
+        type: string
+        pattern: '^POL-[0-9]{4,10}$'
+
+  responses:
+    BadRequest:
+      description: Malformed request (syntax, unknown field, wrong type).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Claim does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntity:
+      description: Request is syntactically valid but violates a business rule (e.g. invalid status transition, missing payout on APPROVED).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    ClaimStatus:
+      type: string
+      enum: [OPEN, IN_REVIEW, APPROVED, REJECTED, PAID]
+      description: |
+        Lifecycle state of a claim. See PATCH /claims/{id} for the
+        allowed transitions.
+
+    Currency:
+      type: string
+      enum: [EUR, USD, GBP, CHF]
+      description: ISO-4217 currency code. Limited to EMIL's supported set.
+
+    Claim:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - policyNumber
+        - claimantName
+        - damageDate
+        - lossDescription
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        policyNumber:
+          type: string
+          pattern: '^POL-[0-9]{4,10}$'
+          example: POL-10001
+        claimantName:
+          type: string
+          minLength: 2
+          maxLength: 120
+          example: Alice Müller
+        damageDate:
+          type: string
+          format: date
+          description: Date the damage occurred. Must not be in the future.
+          example: '2026-03-10'
+        lossDescription:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          example: Windshield cracked by flying debris on the A9.
+        status:
+          $ref: '#/components/schemas/ClaimStatus'
+        payoutAmount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+          description: Required once status reaches APPROVED or PAID.
+          example: 1250.00
+        payoutCurrency:
+          $ref: '#/components/schemas/Currency'
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+
+    CreateClaimRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - policyNumber
+        - claimantName
+        - damageDate
+        - lossDescription
+      properties:
+        policyNumber:
+          type: string
+          pattern: '^POL-[0-9]{4,10}$'
+        claimantName:
+          type: string
+          minLength: 2
+          maxLength: 120
+        damageDate:
+          type: string
+          format: date
+        lossDescription:
+          type: string
+          minLength: 10
+          maxLength: 2000
+
+    UpdateClaimRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        status:
+          $ref: '#/components/schemas/ClaimStatus'
+        payoutAmount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        payoutCurrency:
+          $ref: '#/components/schemas/Currency'
+
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Stable machine-readable error code.
+          example: INVALID_STATUS_TRANSITION
+        message:
+          type: string
+          description: Human-readable explanation.
+        details:
+          type: array
+          description: Optional field-level details for validation errors.
+          items:
+            type: object
+            additionalProperties: false
+            required: [path, issue]
+            properties:
+              path:
+                type: string
+                example: /policyNumber
+              issue:
+                type: string
+                example: must match pattern "^POL-[0-9]{4,10}$"
