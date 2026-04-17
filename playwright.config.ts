@@ -31,8 +31,8 @@ export default defineConfig({
         command: `PORT=${mockPort} npx tsx src/mock-server.ts`,
         url: `${mockBaseUrl}/claims`,
         reuseExistingServer: false,
-        stdout: 'pipe',
-        stderr: 'pipe',
+        stdout: 'ignore',
+        stderr: 'ignore',
         timeout: 15_000,
       },
 });

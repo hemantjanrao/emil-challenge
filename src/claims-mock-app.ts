@@ -22,6 +22,7 @@ const validateStatus = getSchemaValidator('ClaimStatus');
 const claims = new Map<string, Claim>();
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const LOG_REQUESTS = process.env['LOG_REQUESTS'] === 'true';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -61,30 +62,70 @@ const jsonParseErrorHandler: ErrorRequestHandler = (err, _req, res, next) => {
 };
 app.use(jsonParseErrorHandler);
 
-// Request logger (stdout, coloured by status).
-app.use((req: Request, res: Response, next: NextFunction) => {
-  const start = Date.now();
-  const qs = Object.keys(req.query).length
-    ? '?' + new URLSearchParams(req.query as Record<string, string>).toString()
-    : '';
-  const bodyStr =
-    req.body && Object.keys(req.body as object).length
-      ? '  body=' + JSON.stringify(req.body)
+if (LOG_REQUESTS) {
+  const METHOD_COLOR: Record<string, string> = {
+    GET: '\x1b[34m',
+    POST: '\x1b[32m',
+    PATCH: '\x1b[33m',
+    PUT: '\x1b[35m',
+    DELETE: '\x1b[31m',
+  };
+
+  const statusColor = (code: number): string => {
+    if (code < 300) return '\x1b[32m';
+    if (code < 400) return '\x1b[36m';
+    if (code < 500) return '\x1b[33m';
+    return '\x1b[31m';
+  };
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const start = Date.now();
+    const ts = new Date().toISOString().replace('T', ' ').slice(0, 23);
+    const qs = Object.keys(req.query).length
+      ? '?' + new URLSearchParams(req.query as Record<string, string>).toString()
       : '';
+    const mColor = METHOD_COLOR[req.method] ?? '\x1b[37m';
+    const dim = '\x1b[2m';
+    const bold = '\x1b[1m';
+    const reset = '\x1b[0m';
+    const cyan = '\x1b[36m';
+    const magenta = '\x1b[35m';
 
-  process.stdout.write(`\u2192  ${req.method.padEnd(6)} ${req.path}${qs}${bodyStr}\n`);
+    const line = `${dim}${ts}${reset}  ${mColor}${bold}${req.method.padEnd(6)}${reset}  ${req.path}${qs}`;
+    process.stdout.write(`\n${line}\n`);
 
-  res.on('finish', () => {
-    const ms = Date.now() - start;
-    const color =
-      res.statusCode < 300 ? '\x1b[32m' : res.statusCode < 500 ? '\x1b[33m' : '\x1b[31m';
-    process.stdout.write(
-      `${color}\u2190  ${res.statusCode}\x1b[0m  ${req.method} ${req.path}${qs}  (${ms}ms)\n`,
-    );
+    if (req.body && Object.keys(req.body as object).length) {
+      const pretty = JSON.stringify(req.body, null, 2)
+        .split('\n')
+        .map((l, i) => (i === 0 ? `  ${cyan}body${reset}  ${l}` : `         ${l}`))
+        .join('\n');
+      process.stdout.write(pretty + '\n');
+    }
+
+    let responseBody: unknown;
+    const originalJson = res.json.bind(res) as (body: unknown) => Response;
+    res.json = (body: unknown): Response => {
+      responseBody = body;
+      return originalJson(body);
+    };
+
+    res.on('finish', () => {
+      const ms = Date.now() - start;
+      const sc = statusColor(res.statusCode);
+      process.stdout.write(`  ${sc}${bold}${res.statusCode}${reset}  ${dim}${ms}ms${reset}\n`);
+
+      if (responseBody !== undefined) {
+        const pretty = JSON.stringify(responseBody, null, 2)
+          .split('\n')
+          .map((l, i) => (i === 0 ? `  ${magenta}resp${reset}  ${l}` : `         ${l}`))
+          .join('\n');
+        process.stdout.write(pretty + '\n');
+      }
+    });
+
+    next();
   });
-
-  next();
-});
+}
 
 app.get('/claims', (req: Request, res: Response) => {
   const { status, policyNumber } = req.query as Record<string, string | undefined>;

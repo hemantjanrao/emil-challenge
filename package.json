@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "EMIL Claims API — take-home automation suite",
+  "description": "EMIL Claims API \u2014 take-home automation suite",
   "engines": {
     "node": ">=20"
   },
@@ -12,7 +12,8 @@
     "test": "playwright test",
     "test:report": "playwright show-report",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:server": "BASE_URL=http://localhost:3000 playwright test"
   },
   "dependencies": {
     "ajv": "^8.17.1",

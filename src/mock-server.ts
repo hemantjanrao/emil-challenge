@@ -11,5 +11,14 @@ import { app } from './claims-mock-app.js';
 const PORT = Number(process.env['PORT'] ?? 3000);
 
 app.listen(PORT, () => {
-  console.log(`EMIL Claims mock listening on http://localhost:${PORT}`);
+  const baseUrl = `http://localhost:${PORT}`;
+  const requestLogs = process.env['LOG_REQUESTS'] === 'true' ? 'enabled' : 'disabled';
+
+  console.log(`
+EMIL Claims mock server
+-----------------------
+Base URL      ${baseUrl}
+API root      ${baseUrl}/claims
+Request logs  ${requestLogs} (set LOG_REQUESTS=true to enable)
+`);
 });

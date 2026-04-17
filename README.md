@@ -28,6 +28,12 @@ npm run start            # → http://localhost:3000
 curl -s localhost:3000/claims | jq
 ```
 
+`npm test` uses Playwright's compact console reporter and suppresses
+mock-server stdout/stderr, so the terminal stays focused on pass/fail
+results. For full test names, open the HTML report with `npm run
+test:report`. For local API debugging, run `LOG_REQUESTS=true npm run start`
+to print formatted request/response logs.
+
 **Prereqs:** Node ≥ 20, npm ≥ 9.
 
 ---
