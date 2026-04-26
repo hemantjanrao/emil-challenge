@@ -1,20 +1,33 @@
 /**
- * PATCH /claims/{id} — status transitions and invariants.
+ * tests/specs/update-status.spec.ts — PATCH /claims/{id} (status transitions)
+ *
+ * Covers:
+ *   TC-U1 — full happy path: OPEN → IN_REVIEW → APPROVED (with payout) → PAID
+ *   TC-U2 — rejection branch: OPEN → IN_REVIEW → REJECTED
+ *   TC-U3 — updatedAt advances on PATCH; createdAt stays fixed
+ *   TC-U4a — skipping a step: OPEN → APPROVED → 422
+ *   TC-U4b — skipping to terminal: OPEN → PAID → 422
+ *   TC-U4c — going backwards: IN_REVIEW → OPEN → 422
+ *   TC-U4d — moving out of terminal: PAID → IN_REVIEW → 422
+ *   TC-U5 — APPROVED without payoutAmount → 422 PAYOUT_REQUIRED
+ *   TC-U6 — PAID inherits payoutAmount set at APPROVED
+ *   TC-U7 — payout fields on OPEN claim → 422 PAYOUT_NOT_ALLOWED
+ *   TC-U8 — invalid status value → 400 VALIDATION_ERROR
+ *   TC-U9 — unknown claim id → 404 CLAIM_NOT_FOUND
+ *
+ * WHY 4 TRANSITION PATTERNS INSTEAD OF EXHAUSTIVE PAIRS?
+ * ────────────────────────────────────────────────────────
+ * With 5 statuses, exhaustive forbidden-pair testing would yield ~15 cases,
+ * most of which test the same state-machine logic repeatedly. Instead we
+ * pick 4 patterns that represent every distinct *kind* of mistake a caller
+ * could make. This keeps the suite lean while still catching regressions
+ * in the transition guard logic.
  *
  * The full transition graph is:
  *
  *   OPEN ──► IN_REVIEW ──► APPROVED ──► PAID
- *                 │
- *                 └──► REJECTED
- *
- * Rather than exhaustively testing every forbidden (from, to) pair, the
- * cases below pick the most risk-representative ones:
- *   - skipping a step (OPEN → APPROVED, OPEN → PAID)
- *   - going backwards (IN_REVIEW → OPEN)
- *   - moving out of a terminal state (PAID → anything)
- * Those four patterns cover the realistic ways a client might misuse the API.
- * The full state machine is documented in test-cases.md if exhaustive
- * coverage is ever needed.
+ *                  │
+ *                  └──► REJECTED  (terminal — no further moves)
  */
 
 import { test, expect, expectSchema, validators } from '../support/fixtures.js';

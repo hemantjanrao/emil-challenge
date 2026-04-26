@@ -1,8 +1,27 @@
 /**
- * POST /claims — creating a claim.
+ * tests/specs/create-claim.spec.ts — POST /claims (create a claim)
  *
- * Happy path, then a *data-driven* negative matrix targeting every
- * constraint the OpenAPI spec documents.
+ * Covers:
+ *   TC-C1 — happy path: 201 + schema-valid body + Location header + status=OPEN
+ *   TC-C2 — created claim is persisted and fetchable by id
+ *   TC-C3 — explicit status=OPEN is accepted (it's the only allowed value)
+ *   TC-C4 — server-generated id cannot be supplied by the caller
+ *   TC-C5 — (×4) each required field, missing one at a time → 400
+ *   TC-C6 — (×9) each field with an invalid value → 400
+ *   TC-C7 — damageDate in the future → 422 (business rule, not schema)
+ *   TC-C8 — non-JSON body → 400 INVALID_JSON
+ *   TC-C9 — error body matches the Error schema + details has field paths
+ *
+ * DATA-DRIVEN PATTERN (TC-C5, TC-C6)
+ * ────────────────────────────────────
+ * Instead of writing 13 nearly-identical test functions, the negative cases
+ * are stored in arrays of `Case` objects. A `for` loop iterates over each
+ * case and generates one test per entry via `test(...)`. This keeps the
+ * test count accurate (each entry is a distinct registered test) while
+ * eliminating the boilerplate of repeating the same assertion pattern.
+ *
+ * To add a new negative case, append an entry to `missingFields` or
+ * `invalidValues` — no new test function needed.
  */
 
 import { test, expect, expectSchema, validators } from '../support/fixtures.js';
