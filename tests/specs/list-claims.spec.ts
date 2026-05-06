@@ -27,9 +27,19 @@ test.describe('GET /claims', () => {
 
   test('TC-L1 returns a schema-valid array (possibly empty)', async ({ claims }) => {
     // No filter — returns everything currently in the mock's in-memory store.
+    // Arrange: create a claim with a unique policy number.
+    const payload = aValidCreateClaim();
+    const created = await claims.createOrThrow(payload);
+
+    expect(created.status).toBe('OPEN');
+
+    // Act: list all claims.
     const res = await claims.list();
     expect(res.status()).toBe(200);
     const body = await res.json();
+
+    expect(body).toHaveLength(1);
+    expect(body[0]).toEqual(created);
     // validators.ClaimsList checks that the body is an array where every
     // item matches the Claim schema.
     expectSchema(validators.ClaimsList, body);

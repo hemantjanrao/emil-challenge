@@ -170,6 +170,19 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 
+    delete:
+        tags: [Claims]
+        summary: Delete a claim
+        operationId: deleteClaim
+        description: Deletes a claim.
+        responses:
+          '204':
+            description: Claim deleted.
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '404':
+            $ref: '#/components/responses/NotFound'
+
 components:
   parameters:
     ClaimId:

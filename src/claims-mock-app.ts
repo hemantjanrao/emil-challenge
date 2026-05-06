@@ -120,8 +120,19 @@ function requireObjectBody(req: Request, res: Response): boolean {
 // ── Express app ───────────────────────────────────────────────────────────────
 export const app = express();
 
+// Add CORS headers so Swagger UI (running on a different port) can fetch the API.
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  next();
+});
+
 // Parse JSON bodies automatically. Express sets req.body to the parsed object.
-// If the body is not valid JSON, Express calls next(err) with a parse error.
 app.use(express.json());
 
 // Re-shape Express's default JSON-parse error into our Error schema.
@@ -410,6 +421,22 @@ app.patch('/claims/:id', (req: Request, res: Response) => {
   claim.updatedAt = nowIso(); // always advance updatedAt on a successful PATCH
 
   res.json(claim);
+});
+
+// ── Route: DELETE /claims/:id ──────────────────────────────────────────────────
+// Deletes a claim.
+app.delete('/claims/:id', (req: Request, res: Response) => {
+  if (!UUID_V4.test(req.params['id'] ?? '')) {
+    sendError(res, 400, 'INVALID_ID', 'id must be a UUID v4.');
+    return;
+  }
+  const id = req.params['id'] ?? '';
+  if (!claims.has(id)) {
+    sendError(res, 404, 'CLAIM_NOT_FOUND', 'Claim does not exist.');
+    return;
+  }
+  claims.delete(id);
+  res.status(204).send();
 });
 
 // ── 404 fallback ──────────────────────────────────────────────────────────────

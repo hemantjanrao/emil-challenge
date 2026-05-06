@@ -137,6 +137,7 @@ test.describe('POST /claims', () => {
   });
 
   test('TC-C9 error body conforms to Error schema and details has field paths', async ({ claims }) => {
+
     const res = await claims.create({});
     expect(res.status()).toBe(400);
     const body = await res.json();

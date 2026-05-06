@@ -3,3 +3,6 @@ playwright-report/
 test-results/
 *.log
 .DS_Store
+INTERVIEW_PREP.md
+MOCK_INTERVIEW.md
+ARCHITECTURE.md

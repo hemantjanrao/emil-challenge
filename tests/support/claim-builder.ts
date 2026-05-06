@@ -47,8 +47,8 @@ function uniquePolicyNumber(): string {
   counter += 1;
   // process.pid is the OS process ID of the Node.js worker (each Playwright worker
   // is a separate process). `% 100_000` caps it to 5 digits; padStart pads shorter ones.
-  const workerPrefix  = String(process.pid % 100_000).padStart(5, '0');
-  const localSequence = String(counter    % 100_000).padStart(5, '0');
+  const workerPrefix = String(process.pid % 100_000).padStart(5, '0');
+  const localSequence = String(counter % 100_000).padStart(5, '0');
   return `POL-${workerPrefix}${localSequence}`;
 }
 
@@ -71,11 +71,11 @@ export function aValidCreateClaim(
   overrides: Partial<CreateClaimRequest> = {},
 ): CreateClaimRequest {
   return {
-    policyNumber:    uniquePolicyNumber(),
+    policyNumber: uniquePolicyNumber(),
     // randomUUID prefix keeps claimant names unique without a counter
-    claimantName:    `Claimant ${randomUUID().slice(0, 8)}`,
+    claimantName: `Claimant ${randomUUID().slice(0, 8)}`,
     // A past date — passes the "not in the future" business rule
-    damageDate:      '2026-03-01',
+    damageDate: '2026-03-01',
     // Meets the minLength: 10 constraint from the OpenAPI spec
     lossDescription: 'Front bumper damaged after parking collision in an underground garage.',
     // Spread last so callers can override any of the above fields

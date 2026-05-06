@@ -44,4 +44,23 @@ test.describe('GET /claims/{id}', () => {
     expect(res.status()).toBe(400);
     expect((await res.json()).code).toBe('INVALID_ID');
   });
+
+  test('TC-G4 returns 404 for a deleted claim', async ({ claims }) => {
+    const created = await claims.createOrThrow(aValidCreateClaim());
+    const del = await claims.delete(created.id);
+    expect(del.status()).toBe(204);
+    const getAfterDelete = await claims.get(created.id);
+    expect(getAfterDelete.status()).toBe(404);
+    expect((await getAfterDelete.json()).code).toBe('CLAIM_NOT_FOUND');
+  });
+
+  test('TC-G5 returns 204 for successful deletion', async ({ claims }) => {
+    // Arrange: create a claim so we have a real id to delete.
+    const created = await claims.createOrThrow(aValidCreateClaim());
+
+    // Act: delete it.
+    const res = await claims.delete(created.id);
+    expect(res.status()).toBe(204);
+  });
+
 });

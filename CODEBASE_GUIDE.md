@@ -2,6 +2,8 @@
 
 A complete walkthrough of every file, every technology, and every design decision in this project. Written so someone who didn't write the code can understand it end-to-end.
 
+For interview prep flow and concise speaking points, start with [`docs/INTERVIEW_GUIDE.md`](./docs/INTERVIEW_GUIDE.md), then return to this guide for deep dives.
+
 ---
 
 ## Table of Contents

@@ -9,6 +9,15 @@ test suite exercises real behaviour rather than tautologies.
 
 ---
 
+## Documentation map
+
+- [`docs/INTERVIEW_GUIDE.md`](./docs/INTERVIEW_GUIDE.md) - interview-focused end-to-end framework explanation, speaking points, and study plan.
+- [`CODEBASE_GUIDE.md`](./CODEBASE_GUIDE.md) - deep technical walkthrough of project files, architecture, and technologies.
+- [`test-cases.md`](./test-cases.md) - test catalogue mapped to `TC-*` IDs used in specs.
+- [`claims-api.yaml`](./claims-api.yaml) - source-of-truth API contract and schemas.
+
+---
+
 ## Quick start
 
 ```bash

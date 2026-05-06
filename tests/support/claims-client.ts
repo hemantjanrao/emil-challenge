@@ -41,7 +41,7 @@ export class ClaimsClient {
    * It is injected automatically via the `claims` fixture in fixtures.ts —
    * specs never call `new ClaimsClient(...)` directly.
    */
-  constructor(private readonly request: APIRequestContext) {}
+  constructor(private readonly request: APIRequestContext) { }
 
   /**
    * POST /claims — create a new claim.
@@ -72,6 +72,10 @@ export class ClaimsClient {
    */
   list(filter: ListFilter = {}): Promise<APIResponse> {
     return this.request.get('/claims', { params: filter as Record<string, string> });
+  }
+
+  delete(id: string): Promise<APIResponse> {
+    return this.request.delete(`/claims/${encodeURIComponent(id)}`);
   }
 
   // ── Arrange helpers ──────────────────────────────────────────────────────

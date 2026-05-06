@@ -25,6 +25,11 @@
  * trace: 'retain-on-failure':
  *   Playwright captures an HTTP trace for any failing test. The trace zip
  *   can be opened with `npx playwright show-trace` for post-mortem debugging.
+ *
+ * PWDEBUG / timeouts:
+ *   With PWDEBUG=1 or PWDEBUG=console, per-test and expect timeouts are disabled
+ *   so breakpoints do not burn the default 30s wall clock. Set PWDEBUG=0 to turn
+ *   the inspector off without changing other env.
  */
 
 import { defineConfig } from '@playwright/test';
@@ -34,7 +39,16 @@ import { defineConfig } from '@playwright/test';
 const mockPort = Number(process.env['MOCK_PORT'] ?? 3100);
 const mockBaseUrl = `http://localhost:${mockPort}`;
 
+/** True when Playwright debug / inspector is active (CLI --debug, VS Code debug, etc.). */
+const isPlaywrightDebug =
+  !!process.env['PWDEBUG'] && process.env['PWDEBUG'] !== '0';
+
 export default defineConfig({
+  timeout: isPlaywrightDebug ? 0 : undefined,
+  expect: {
+    timeout: isPlaywrightDebug ? 0 : undefined,
+  },
+
   // Where Playwright looks for spec files (any *.spec.ts inside this directory).
   testDir: './tests/specs',
 
@@ -60,6 +74,8 @@ export default defineConfig({
     : [['list'], ['html', { open: 'never' }]],
 
   use: {
+    actionTimeout: isPlaywrightDebug ? 0 : undefined,
+
     // All `request.get('/claims')` calls resolve relative to this base URL.
     baseURL: process.env['BASE_URL'] ?? mockBaseUrl,
 
@@ -79,9 +95,10 @@ export default defineConfig({
   webServer: process.env['BASE_URL']
     ? undefined
     : {
-        // `tsx` runs TypeScript directly — no compile step, no dist/ directory.
+        // Run the bundled tsx CLI with `node` (avoids `npx` cold-start / registry
+        // checks that can keep the server from listening before webServer.timeout).
         // PORT env var is forwarded so the mock binds to our chosen port.
-        command: `PORT=${mockPort} npx tsx src/mock-server.ts`,
+        command: `LOG_REQUESTS=true PORT=${mockPort} node ./node_modules/tsx/dist/cli.mjs src/mock-server.ts`,
 
         // Playwright polls this URL after starting the server process.
         // It waits until the URL returns any HTTP response before running tests.
@@ -95,7 +112,7 @@ export default defineConfig({
         stdout: 'ignore',
         stderr: 'ignore',
 
-        // Maximum time to wait for the server to be ready.
-        timeout: 15_000,
+        // Wait for GET /claims to respond (slow CI, antivirus, cold disk).
+        timeout: 5000_000,
       },
 });
